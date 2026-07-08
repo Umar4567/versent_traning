@@ -2,6 +2,7 @@ import fs from 'fs';
 import http from 'http';
 import path from 'path';
 import url from 'url';
+import { normalizeApiPathname } from './api-route-utils.mjs';
 
 const PORT = Number(process.env.PORT || 3001);
 const DIST_DIR = path.resolve(process.cwd(), 'dist');
@@ -167,7 +168,7 @@ const serveFrontend = (res, pathname) => {
 
 const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url || '', true);
-  const pathname = parsedUrl.pathname || '';
+  const pathname = normalizeApiPathname(parsedUrl.pathname || '');
   const query = parsedUrl.query;
   const method = req.method || 'GET';
 

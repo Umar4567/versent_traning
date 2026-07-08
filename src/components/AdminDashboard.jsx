@@ -183,9 +183,11 @@ export default function AdminDashboard({ onStart, onRegisterCandidate, candidate
               <label>User ID</label>
               <input
                 type="text"
-                value={userId}
+                value={registeredUserId || userId}
                 onChange={(e) => setUserId(e.target.value)}
                 placeholder="Enter user ID"
+                readOnly={Boolean(registeredUserId)}
+                style={{ backgroundColor: registeredUserId ? '#f0f0f0' : '#fff', cursor: registeredUserId ? 'default' : 'text' }}
               />
               <label>Email</label>
               <input
