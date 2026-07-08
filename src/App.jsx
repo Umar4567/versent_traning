@@ -7,6 +7,19 @@ import LoadingOverlay from './components/LoadingOverlay.jsx';
 import ResultSection from './components/ResultSection.jsx';
 import TestSection from './components/TestSection.jsx';
 
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:3001';
+    }
+  }
+
+  return import.meta.env.VITE_API_BASE_URL || 'https://versant-learning-app.loca.lt';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
 const sectionOrder = [
   'typing',
   'sentenceCompletion',
@@ -407,7 +420,7 @@ function App() {
   const fetchCandidates = async () => {
     setCandidateLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/admin/candidates');
+      const response = await fetch(`${API_BASE_URL}/admin/candidates`);
       const payload = await response.json().catch(() => ({}));
 
       if (response.ok && Array.isArray(payload?.candidates)) {
@@ -427,7 +440,7 @@ function App() {
   const fetchResultsList = async () => {
     setResultsLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/admin/results');
+      const response = await fetch(`${API_BASE_URL}/admin/results`);
       const payload = await response.json().catch(() => ({}));
 
       if (response.ok && Array.isArray(payload?.results)) {
@@ -451,7 +464,7 @@ function App() {
 
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const response = await fetch('http://localhost:3001/admin/register-candidate', {
+      const response = await fetch(`${API_BASE_URL}/admin/register-candidate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -500,7 +513,7 @@ function App() {
     const enhancedPrompt = `${prompt}\n\nIMPORTANT: Generate DIFFERENT content each time. Use this unique seed: ${randomSeed}. Timestamp: ${timestamp}. Do NOT repeat previous content.`;
 
     const pollinationsApiKey = import.meta.env.VITE_POLLINATIONS_API_KEY || '';
-    const pollinationsTextProxyBase = import.meta.env.VITE_POLLINATIONS_TEXT_PROXY_URL || 'http://localhost:3001/api/pollinations';
+    const pollinationsTextProxyBase = import.meta.env.VITE_POLLINATIONS_TEXT_PROXY_URL || `${API_BASE_URL}/api/pollinations`;
     const proxyUrl = `${pollinationsTextProxyBase}/${encodeURIComponent(enhancedPrompt)}?seed=${randomSeed}&t=${timestamp}`;
     
     const defaultHeaders = {
@@ -510,7 +523,7 @@ function App() {
 
     // Try local API server FIRST (most reliable)
     try {
-      const localResponse = await fetch(`http://localhost:3001/generate?seed=${randomSeed}`, {
+      const localResponse = await fetch(`${API_BASE_URL}/generate?seed=${randomSeed}`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: enhancedPrompt,
@@ -1021,7 +1034,7 @@ function App() {
     };
 
     try {
-      const response = await fetch('http://localhost:3001/admin/save-result', {
+      const response = await fetch(`${API_BASE_URL}/admin/save-result`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
