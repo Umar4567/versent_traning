@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --port 5177 --host 0.0.0.0",
     "api": "node api-server.mjs",
+    "start": "node api-server.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "seed": "node create-default-users.mjs"

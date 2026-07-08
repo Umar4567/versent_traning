@@ -3,7 +3,21 @@ import http from 'http';
 import path from 'path';
 import url from 'url';
 
-const PORT = 3001;
+const PORT = Number(process.env.PORT || 3001);
+const DIST_DIR = path.resolve(process.cwd(), 'dist');
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.ico': 'image/x-icon',
+  '.txt': 'text/plain; charset=utf-8',
+};
 
 const loadDotEnv = () => {
   try {
@@ -110,6 +124,45 @@ const generateWithOpenAI = async (prompt) => {
     console.warn('OpenAI request error:', error.message);
     return null;
   }
+};
+
+const sendStaticFile = (res, filePath) => {
+  if (!filePath.startsWith(DIST_DIR)) {
+    return false;
+  }
+
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    return false;
+  }
+
+  const extension = path.extname(filePath).toLowerCase();
+  const contentType = MIME_TYPES[extension] || 'application/octet-stream';
+  const fileContents = fs.readFileSync(filePath);
+  const isHtml = extension === '.html';
+
+  res.writeHead(200, {
+    'Content-Type': contentType,
+    'Cache-Control': isHtml ? 'no-store' : 'public, max-age=31536000, immutable',
+  });
+  res.end(fileContents);
+  return true;
+};
+
+const serveFrontend = (res, pathname) => {
+  const trimmedPath = pathname === '/' ? '/index.html' : pathname;
+  const relativePath = trimmedPath.startsWith('/') ? trimmedPath.slice(1) : trimmedPath;
+  const requestedPath = decodeURIComponent(relativePath);
+  const filePath = path.join(DIST_DIR, requestedPath);
+
+  if (sendStaticFile(res, filePath)) {
+    return true;
+  }
+
+  if (pathname !== '/' && !pathname.includes('.')) {
+    return sendStaticFile(res, path.join(DIST_DIR, 'index.html'));
+  }
+
+  return sendStaticFile(res, path.join(DIST_DIR, 'index.html'));
 };
 
 const server = http.createServer(async (req, res) => {
@@ -660,12 +713,16 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (serveFrontend(res, pathname)) {
+    return;
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
-server.listen(PORT, () => {
-  console.log(`✅ Local Text Generation API running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Text Generation API running on port ${PORT}`);
   console.log(`   POST /generate - Send text prompt to generate content`);
   console.log(`   GET /health - Check API status`);
 });
