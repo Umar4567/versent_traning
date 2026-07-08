@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://ruddxvktislvvulpqpvz.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_TyiPrNabAwlgoM0fLXQr7g_2uuZ1puT';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('Using fallback Supabase anon key from code. Set VITE_SUPABASE_ANON_KEY in .env for best practice.');
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Set them in .env for local development and in Vercel Environment Variables for deployment.'
+  );
 }
 
 const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
