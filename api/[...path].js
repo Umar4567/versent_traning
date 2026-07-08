@@ -290,7 +290,13 @@ const handleSaveResult = async (req, res) => {
     });
 
     const responseText = await response.text();
-    const data = responseText ? JSON.parse(responseText).catch(() => responseText) : {};
+    let data = {};
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      data = { message: responseText };
+    }
+
     return sendJson(res, response.ok ? 200 : 500, response.ok ? { success: true, data } : { error: data?.message || 'Failed to save result.' });
   } catch (error) {
     return sendJson(res, 500, { error: error.message || 'Failed to save result.' });
@@ -338,44 +344,43 @@ export default async function handler(req, res) {
     return;
   }
 
-  const segments = getPathSegments(req);
+  const url = new URL(req.url, `https://${req.headers.host || 'localhost'}`);
+  const pathname = url.pathname.replace(/^\/+/, '/');
 
-  if (!segments.length || segments[0] === 'health') {
+  if (pathname === '/health' || pathname === '/api/health') {
     return sendJson(res, 200, { status: 'OK', service: 'Text Generation API', timestamp: new Date().toISOString() });
   }
 
-  if (segments[0] === 'generate') {
+  if (pathname === '/generate' || pathname === '/api/generate') {
     if (req.method !== 'POST' && req.method !== 'GET') {
       return sendJson(res, 405, { error: 'Method not allowed' });
     }
     return handleGenerate(req, res);
   }
 
-  if (segments[0] === 'admin') {
-    if (segments[1] === 'register-candidate') {
-      if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed' });
-      return handleRegisterCandidate(req, res);
-    }
-
-    if (segments[1] === 'candidates') {
-      if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
-      return handleAdminCandidates(res);
-    }
-
-    if (segments[1] === 'results') {
-      if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
-      return handleAdminResults(res);
-    }
-
-    if (segments[1] === 'save-result') {
-      if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed' });
-      return handleSaveResult(req, res);
-    }
+  if (pathname === '/admin/candidates' || pathname === '/api/admin/candidates') {
+    if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
+    return handleAdminCandidates(res);
   }
 
-  if (segments[0] === 'pollinations') {
-    return handlePollinations(req, res, segments);
+  if (pathname === '/admin/results' || pathname === '/api/admin/results') {
+    if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
+    return handleAdminResults(res);
   }
 
-  return sendJson(res, 404, { error: 'Not found' });
+  if (pathname === '/admin/register-candidate' || pathname === '/api/admin/register-candidate') {
+    if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed' });
+    return handleRegisterCandidate(req, res);
+  }
+
+  if (pathname === '/admin/save-result' || pathname === '/api/admin/save-result') {
+    if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed' });
+    return handleSaveResult(req, res);
+  }
+
+  if (pathname.startsWith('/pollinations') || pathname.startsWith('/api/pollinations')) {
+    return handlePollinations(req, res, pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean));
+  }
+
+  return sendJson(res, 404, { error: 'Not found', path: pathname });
 }
