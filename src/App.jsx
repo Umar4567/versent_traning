@@ -1084,9 +1084,9 @@ function App() {
     <div id="app">
       <div className="header">
         <div className="header-top">
-          <h1>🧠 AI-Powered Versant Practice <span className="ai-badge">🤖 AI</span></h1>
+          <h1>🧠 AI-Powered Versant Practice</h1>
           <div className={`supabase-status ${supabaseStatus}`}>
-            {supabaseStatus === 'connected' ? '🟢 Supabase connected' : '🔴 Supabase disconnected'}
+            {supabaseStatus === 'connected' ? '🟢 Database connected' : '🔴 Database disconnected'}
           </div>
           {(user && !isTestMode) && (
             <div className="supabase-user">
