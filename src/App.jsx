@@ -426,15 +426,15 @@ function App() {
   const fetchCandidates = async () => {
     setCandidateLoading(true);
     try {
-      const response = await fetch(getApiUrl('/admin/candidates'));
-      const payload = await response.json().catch(() => ({}));
+      if (!supabaseClient) throw new Error('Supabase is not configured.');
+      const { data, error } = await supabaseClient
+        .from('profiles')
+        .select('id, email, role, user_id_custom, created_at')
+        .eq('role', 'candidate')
+        .order('created_at', { ascending: false });
 
-      if (response.ok && Array.isArray(payload?.candidates)) {
-        setCandidates(payload.candidates);
-      } else {
-        setCandidates([]);
-        console.warn('Failed to load candidates:', payload?.error || response.statusText);
-      }
+      if (error) throw error;
+      setCandidates(data || []);
     } catch (err) {
       console.warn('Failed to load candidates:', err);
       setCandidates([]);
@@ -446,15 +446,18 @@ function App() {
   const fetchResultsList = async () => {
     setResultsLoading(true);
     try {
-      const response = await fetch(getApiUrl('/admin/results'));
-      const payload = await response.json().catch(() => ({}));
+      if (!supabaseClient) throw new Error('Supabase is not configured.');
+      const { data, error } = await supabaseClient
+        .from('test_results')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (response.ok && Array.isArray(payload?.results)) {
-        setResultsList(payload.results);
-      } else {
-        setResultsList([]);
-        console.warn('Failed to load results:', payload?.error || response.statusText);
-      }
+      if (error) throw error;
+      setResultsList((data || []).map((item) => ({
+        ...item,
+        answers: item.answers || {},
+        questions: item.questions || [],
+      })));
     } catch (err) {
       console.warn('Failed to load results:', err);
       setResultsList([]);
@@ -470,18 +473,12 @@ function App() {
 
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const response = await fetch(getApiUrl('/admin/register-candidate'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: userId.trim(), email: normalizedEmail, password }),
+      if (!supabaseClient) return { error: 'Supabase is not configured.' };
+      const { data: payload, error } = await supabaseClient.functions.invoke('admin-register-candidate', {
+        body: { userId: userId.trim(), email: normalizedEmail, password },
       });
 
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || payload?.error) {
-        return { error: payload?.error || 'Candidate registration failed.' };
-      }
+      if (error || payload?.error) return { error: payload?.error || error.message || 'Candidate registration failed.' };
 
       const createdUserId = payload?.user?.id || payload?.userId || payload?.id;
       if (!createdUserId) {
@@ -1040,22 +1037,11 @@ function App() {
     };
 
     try {
-      const response = await fetch(getApiUrl('/admin/save-result'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      if (!supabaseClient) throw new Error('Supabase is not configured.');
+      const { error } = await supabaseClient.from('test_results').insert(payload);
+      if (error) throw error;
 
-      const payloadResponse = await response.json().catch(() => ({}));
-      const saved = response.ok && !payloadResponse?.error;
-      if (!saved) {
-        console.error('Save result API error:', payloadResponse?.error || response.statusText);
-        return false;
-      }
-
-      console.log('Result saved to DB via backend');
+      console.log('Result saved to Supabase');
 
       const isAdminUser = userProfile?.role === 'admin' || user?.email === 'admin@example.com';
       if (isAdminUser) {
