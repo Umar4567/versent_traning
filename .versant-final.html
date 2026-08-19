@@ -1,0 +1,2439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Versant - Audio Auto-Stop</title>
+    <style src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #app {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 950px;
+            padding: 30px;
+            min-height: 500px;
+            max-height: 98vh;
+            overflow-y: auto;
+        }
+
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 1.8rem;
+        }
+
+        .header .ai-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 2px 15px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-left: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .supabase-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-left: 12px;
+            border: 1px solid transparent;
+        }
+
+        .supabase-status.connected {
+            background: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+
+        .supabase-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .dashboard-content {
+            text-align: center;
+        }
+
+        .dashboard-content h2 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.05rem;
+            margin-bottom: 25px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin: 25px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+        }
+
+        .feature-card .icon {
+            font-size: 2rem;
+        }
+
+        .feature-card .ai-badge-small {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 0.5rem;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        .feature-card h3 {
+            color: #333;
+            font-size: 0.9rem;
+            margin: 5px 0;
+        }
+
+        .feature-card p {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .generate-btn {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .timer {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .timer.warning {
+            color: #dc3545;
+            animation: pulse 1s infinite;
+        }
+
+        .timer.urgent {
+            color: #dc3545;
+            animation: pulse 0.5s infinite;
+        }
+
+        .question-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .question-nav h3 {
+            color: #667eea;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .question-nav .ai-tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        .question-nav span {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .question-box {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            min-height: 250px;
+        }
+
+        .question-text {
+            font-size: 1.05rem;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .question-box .ai-gen-label {
+            font-size: 0.7rem;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            min-height: 120px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .options-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .option-label:hover {
+            background: #f0f3ff;
+            border-color: #667eea;
+        }
+
+        .option-label input[type="radio"] {
+            width: 17px;
+            height: 17px;
+        }
+
+        .test-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .test-controls button {
+            min-width: 150px;
+        }
+
+        .test-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 450px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-content .loading-steps {
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .loading-content .loading-steps .step {
+            padding: 6px 0;
+            color: #666;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .loading-content .loading-steps .step .check {
+            color: #28a745;
+            display: none;
+        }
+
+        .loading-content .loading-steps .step.done .check {
+            display: inline;
+        }
+
+        .loading-content .loading-steps .step.done {
+            color: #28a745;
+        }
+
+        .loading-content .loading-steps .step.active {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .results-container {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .results-header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .result-icon {
+            font-size: 3rem;
+        }
+
+        .total-score {
+            margin: 10px 0;
+        }
+
+        .score-number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .score-max {
+            font-size: 1.5rem;
+            color: #666;
+        }
+
+        .score-percentage {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #667eea;
+            margin-left: 10px;
+        }
+
+        .feedback-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .insights-section {
+            background: linear-gradient(135deg, #f0f4ff, #e8f0fe);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .insights-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .insight-item {
+            display: flex;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .insight-item:last-child {
+            border-bottom: none;
+        }
+
+        .insight-icon {
+            font-size: 1.2rem;
+            min-width: 30px;
+        }
+
+        .insight-item.strength { color: #28a745; }
+        .insight-item.weakness { color: #dc3545; }
+        .insight-item.recommendation { color: #667eea; }
+
+        .insight-item ul {
+            margin: 5px 0 0 20px;
+            color: #555;
+        }
+
+        .insight-item ul li {
+            margin: 3px 0;
+        }
+
+        .section-results h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .section-result-item {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 2px solid #f0f0f0;
+        }
+
+        .section-result-item:hover {
+            border-color: #667eea;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .section-letter {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .section-name {
+            color: #333;
+        }
+
+        .section-score {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .score-text {
+            font-weight: 600;
+            min-width: 50px;
+            color: #333;
+        }
+
+        .score-bar-container {
+            flex: 1;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .score-bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.8s ease;
+        }
+
+        .score-percentage-text {
+            font-weight: 600;
+            min-width: 45px;
+            text-align: right;
+        }
+
+        .retry-btn {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .ai-status-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 15px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .fresh-questions-badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 4px 15px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 10px;
+            margin-left: 10px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .auto-advance-badge {
+            display: inline-block;
+            background: #ffc107;
+            color: #856404;
+            padding: 4px 15px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 10px;
+            margin-left: 10px;
+        }
+
+        .audio-playing-badge {
+            display: inline-block;
+            background: #dc3545;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            animation: pulse 0.8s infinite;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            margin-bottom: 15px;
+        }
+
+        .audio-controls .recording {
+            background: #dc3545;
+            animation: pulse 1s infinite;
+        }
+
+        .audio-hint {
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 600px) {
+            #app { padding: 15px; }
+            .features-grid { grid-template-columns: 1fr 1fr; }
+            .question-box { padding: 15px; }
+            .test-controls button { width: 100%; }
+            .score-number { font-size: 2.2rem; }
+            .section-score { flex-wrap: wrap; gap: 8px; }
+            .score-bar-container { width: 100%; order: 3; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <div style="display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
+                <h1 style="margin:0;">🧠 AI-Powered Versant Practice <span class="ai-badge">🤖 AI</span></h1>
+                <div id="supabaseStatus" class="supabase-status disconnected">🔴 Supabase disconnected</div>
+            </div>
+            <p>Auto-advance timer • Audio auto-stops on skip</p>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="dashboard" class="section active">
+            <div class="dashboard-content">
+                <h2>🚀 AI-Generated  Test</h2>
+                <p class="subtitle">Each question has a 30-second timer that auto-advances</p>
+
+                <!-- <div style="background: #d4edda; padding: 15px; border-radius: 12px; margin-bottom: 25px; border-left: 4px solid #28a745;">
+                    <div style="color: #155724; font-weight: 600; font-size: 1.1rem;">🎧 AUDIO AUTO-STOPS</div>
+                    <div style="color: #155724; font-size: 0.9rem; margin-top: 3px;">Audio stops automatically when you skip or time runs out</div>
+                </div> -->
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="icon">⌨️</div>
+                        <h3>Typing <span class="ai-badge-small">AI</span></h3>
+                        <p>30s timer</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">📝</div>
+                        <h3>Sentence Completion <span class="ai-badge-small">AI</span></h3>
+                        <p>30s timer</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🎧</div>
+                        <h3>Listening <span class="ai-badge-small">AI</span></h3>
+                        <p>30s timer • Audio auto-stops</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🎤</div>
+                        <h3>Speaking <span class="ai-badge-small">AI</span></h3>
+                        <p>30s timer</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">📝</div>
+                        <h3>Dictation <span class="ai-badge-small">AI</span></h3>
+                        <p>30s timer</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🧩</div>
+                        <h3>Passage Reconstruction <span class="ai-badge-small">AI</span></h3>
+                        <p>30s timer</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">✉️</div>
+                        <h3>Email Writing <span class="ai-badge-small">AI</span></h3>
+                        <p>30s timer</p>
+                    </div>
+                </div>
+
+                <button onclick="generateAndStart()" class="btn-primary generate-btn" id="startBtn">
+                    🤖 Generate NEW AI Questions & Start Test
+                </button>
+                <div style="margin-top: 10px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                    <span class="fresh-questions-badge">🔄 Fresh Questions</span>
+                    <span class="auto-advance-badge">⏱️ Auto-Advance</span>
+                    <span class="auto-advance-badge" style="background: #dc3545; color: white;">🎧 Audio Auto-Stop</span>
+                </div>
+                <p style="color:#666;font-size:0.8rem;margin-top:10px;">
+                    ⏱️ 30 seconds per question • Auto-advances • Audio stops on skip
+                </p>
+            </div>
+        </div>
+
+        <!-- TEST -->
+        <div id="testSection" class="section">
+            <div class="test-header">
+                <div style="flex:1;">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                </div>
+                <div class="timer" id="timerDisplay">⏱️ 00:30</div>
+            </div>
+
+            <div class="question-nav">
+                <h3 id="sectionTitle">Part A - Typing <span class="ai-tag">🤖 AI</span></h3>
+                <span id="questionCounter">Question 1 of 1</span>
+            </div>
+
+            <div id="questionBox" class="question-box">
+                <!-- Dynamic content -->
+            </div>
+
+            <div class="test-controls">
+                <button id="nextBtn" class="btn-primary" onclick="forceNext()">Skip →</button>
+                <button id="submitBtn" class="btn-success" style="display:none;" onclick="submitTest()">📊 Submit Test</button>
+            </div>
+        </div>
+
+        <!-- RESULTS -->
+        <div id="resultsSection" class="section">
+            <div id="resultsContainer"></div>
+            <button onclick="resetTest()" class="btn-primary retry-btn">
+                🤖 Generate NEW AI Questions
+            </button>
+        </div>
+
+        <!-- LOADING -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <h3 id="loadingText">🤖 AI is creating FRESH questions...</h3>
+                <p style="color:#666;font-size:0.9rem;" id="loadingProvider">Generating unique content just for you</p>
+                <div class="loading-steps">
+                    <div class="step" id="step1">⏳ Generating typing passage...</div>
+                    <div class="step" id="step2">⏳ Creating sentence completion...</div>
+                    <div class="step" id="step3">⏳ Generating listening passage...</div>
+                    <div class="step" id="step4">⏳ Creating speaking topic...</div>
+                    <div class="step" id="step5">⏳ Generating dictation...</div>
+                    <div class="step" id="step6">⏳ Creating passage reconstruction...</div>
+                    <div class="step" id="step7">⏳ Generating email prompt...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // STATE
+        // ============================================================
+        const state = {
+            questions: null,
+            answers: {},
+            currentSection: 0,
+            currentQuestionIndex: 0,
+            questionTimer: 30,
+            questionTimerInterval: null,
+            isQuestionTimerRunning: false,
+            isAudioPlaying: false,
+            currentUtterance: null,
+            sectionOrder: ['typing', 'sentenceCompletion', 'listening', 'speaking', 'dictation', 'passageReconstruction',
+                'emailWriting'
+            ],
+            sectionNames: {
+                typing: 'Typing',
+                sentenceCompletion: 'Sentence Completion',
+                listening: 'Listening Comprehension',
+                speaking: 'Speaking Assessment',
+                dictation: 'Dictation',
+                passageReconstruction: 'Passage Reconstruction',
+                emailWriting: 'Email Writing'
+            },
+            sectionIcons: {
+                typing: '⌨️',
+                sentenceCompletion: '📝',
+                listening: '🎧',
+                speaking: '🎤',
+                dictation: '📝',
+                passageReconstruction: '🧩',
+                emailWriting: '✉️'
+            },
+            isTestComplete: false
+        };
+
+        // ============================================================
+        // Supabase setup
+        // ============================================================
+        const SUPABASE_URL = 'https://ruddxvktislvvulpqpvz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_TyiPrNabAwlgoM0fLXQr7g_2uuZ1puT';
+        const supabaseClient = (typeof supabase !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY)
+            ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+            : null;
+
+        const supabaseStatus = document.getElementById ? document.getElementById('supabaseStatus') : null;
+
+        function updateSupabaseStatus(connected) {
+            if (!supabaseStatus) return;
+            if (connected) {
+                supabaseStatus.className = 'supabase-status connected';
+                console.log('🟢 Supabase connected');
+            } else {
+                supabaseStatus.className = 'supabase-status disconnected';
+                console.log('🔴 Supabase disconnected');
+            }
+        }
+
+        async function checkSupabaseConnection() {
+            if (!supabaseClient) {
+                console.warn('Supabase client not configured. Replace SUPABASE_URL and SUPABASE_ANON_KEY.');
+                updateSupabaseStatus(false);
+                return false;
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('test_results')
+                    .select('id')
+                    .limit(1);
+
+                if (error) {
+                    console.warn('Supabase health check error:', error);
+                    updateSupabaseStatus(false);
+                    return false;
+                }
+
+                updateSupabaseStatus(true);
+                return true;
+            } catch (err) {
+                console.error('Supabase connection check failed:', err);
+                updateSupabaseStatus(false);
+                return false;
+            }
+        }
+
+        async function saveResultsToSupabase(results) {
+            if (!supabaseClient) {
+                console.warn('Supabase client not configured. Replace SUPABASE_URL and SUPABASE_ANON_KEY.');
+                return;
+            }
+
+            const payload = {
+                created_at: new Date().toISOString(),
+                total_score: results.totalScore,
+                max_score: results.maxScore,
+                percentage: results.percentage,
+                sections: JSON.stringify(results.sections),
+                answers: JSON.stringify(state.answers),
+                questions: JSON.stringify(state.questions)
+            };
+
+            try {
+                const { error } = await supabaseClient
+                    .from('test_results')
+                    .insert([payload]);
+
+                if (error) {
+                    console.error('Supabase insert error:', error);
+                } else {
+                    console.log('Test results saved to Supabase successfully.');
+                }
+            } catch (err) {
+                console.error('Supabase save failed:', err);
+            }
+        }
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        const $ = id => document.getElementById(id);
+        const dashboard = $('dashboard');
+        const testSection = $('testSection');
+        const resultsSection = $('resultsSection');
+        const questionBox = $('questionBox');
+        const progressFill = $('progressFill');
+        const timerDisplay = $('timerDisplay');
+        const sectionTitle = $('sectionTitle');
+        const questionCounter = $('questionCounter');
+        const nextBtn = $('nextBtn');
+        const submitBtn = $('submitBtn');
+        const startBtn = $('startBtn');
+        const loadingOverlay = $('loadingOverlay');
+        const loadingText = $('loadingText');
+        const loadingProvider = $('loadingProvider');
+
+        // ============================================================
+        // AUDIO MANAGEMENT - FIXED!
+        // ============================================================
+        function stopAllAudio() {
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                state.isAudioPlaying = false;
+                state.currentUtterance = null;
+                console.log('🔇 Audio stopped');
+            }
+        }
+
+        function playAudio(text) {
+            // Stop any existing audio first
+            stopAllAudio();
+            
+            if (!window.speechSynthesis) {
+                alert('Text-to-speech not supported');
+                return;
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.85;
+            utterance.pitch = 1;
+            
+            utterance.onstart = function() {
+                state.isAudioPlaying = true;
+                state.currentUtterance = utterance;
+                console.log('🔊 Audio started playing');
+                
+                // Update button if listening section
+                const playBtn = document.querySelector('.audio-controls .btn-secondary');
+                if (playBtn) {
+                    playBtn.textContent = '🔊 Playing...';
+                    playBtn.style.background = '#28a745';
+                }
+            };
+            
+            utterance.onend = function() {
+                state.isAudioPlaying = false;
+                state.currentUtterance = null;
+                console.log('🔊 Audio finished');
+                
+                const playBtn = document.querySelector('.audio-controls .btn-secondary');
+                if (playBtn) {
+                    playBtn.textContent = '🔊 Play Audio';
+                    playBtn.style.background = '';
+                }
+            };
+            
+            utterance.onerror = function() {
+                state.isAudioPlaying = false;
+                state.currentUtterance = null;
+                console.log('⚠️ Audio error');
+                
+                const playBtn = document.querySelector('.audio-controls .btn-secondary');
+                if (playBtn) {
+                    playBtn.textContent = '🔊 Play Audio';
+                    playBtn.style.background = '';
+                }
+            };
+            
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // ============================================================
+        // AI API CALLS
+        // ============================================================
+        let testRunCount = 0;
+
+        async function queryAI(prompt) {
+            const randomSeed = Math.floor(Math.random() * 999999);
+            const timestamp = Date.now();
+            const enhancedPrompt = `${prompt}\n\nIMPORTANT: Generate DIFFERENT content each time. Use this unique seed: ${randomSeed}. Timestamp: ${timestamp}. Do NOT repeat previous content.`;
+
+            try {
+                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(enhancedPrompt)}?seed=${randomSeed}&t=${timestamp}`);
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                const text = await response.text();
+                
+                if (text && text.length > 10) {
+                    return text;
+                } else {
+                    throw new Error('Empty response from AI');
+                }
+            } catch (error) {
+                console.error('Pollinations error:', error);
+                return generateFallbackResponse(prompt);
+            }
+        }
+
+        function generateFallbackResponse(prompt) {
+            const randomIndex = Math.floor(Math.random() * 5);
+            
+            const responses = {
+                typing: [
+                    'The quick brown fox jumps over the lazy dog. This sentence contains every letter of the English alphabet and is commonly used for typing practice.',
+                    'Customer service excellence requires patience, active listening, and the ability to resolve issues efficiently and professionally.',
+                    'In todays digital workplace, remote collaboration tools have become essential for team productivity and seamless communication.',
+                    'The annual sales conference will be held at the downtown convention center next month with over 500 attendees expected.',
+                    'Effective project management requires clear communication, realistic timelines, and regular progress monitoring.'
+                ],
+                sc: [
+                    'Effective communication is essential for team success.|essential|optional|unnecessary|rare',
+                    'The manager will schedule the meeting at 3 PM.|schedule|cancel|postpone|ignore',
+                    'The new software update will bring significant improvements.|bring|remove|delay|cancel',
+                    'Regular training helps employees develop their professional skills.|develop|lose|forget|ignore',
+                    'The company aims to increase customer satisfaction by 20%.|increase|decrease|maintain|ignore'
+                ],
+                listening: [
+                    'The company announced a new remote work policy starting next month. Employees can choose to work from home or the office. The policy aims to improve work-life balance.',
+                    'The quarterly earnings report shows a 15% increase in revenue compared to last year. The growth is driven by strong sales in the Asia-Pacific region.',
+                    'The company is launching a new sustainability initiative to reduce carbon emissions by 30% over the next five years.',
+                    'The marketing team is planning a major campaign for the new product launch scheduled for next quarter.',
+                    'The IT department has implemented a new security system to protect company data from potential cyber threats.'
+                ],
+                speaking: [
+                    'Describe your ideal workplace environment and explain why it would be productive.',
+                    'Discuss the importance of teamwork in achieving business goals.',
+                    'Explain how technology has changed the way we work in the last 10 years.',
+                    'What are the most important qualities of a good leader in the modern workplace?',
+                    'How can companies encourage innovation and creativity among their employees?'
+                ],
+                dictation: [
+                    'The team achieved all their quarterly targets ahead of schedule.',
+                    'Customer feedback is essential for improving product quality and service delivery.',
+                    'The new training program will help employees develop their professional skills.',
+                    'The quarterly review meeting will be held in the main conference room at 10 AM.',
+                    'All employees must complete the mandatory compliance training by the end of this month.'
+                ],
+                passage: [
+                    'Finally, the project was completed successfully.|First, the team defined the project scope.|Then, they assigned tasks to each member.|After that, they began the implementation phase.',
+                    'Eventually, the company achieved record profits.|Initially, they conducted market research.|Next, they developed a new product line.|Finally, they launched a marketing campaign.',
+                    'In conclusion, the initiative was a success.|First, they identified the key challenges.|Then, they developed a comprehensive strategy.|Finally, they executed the plan effectively.'
+                ],
+                email: [
+                    'Write a professional email to your team about meeting an important deadline.|deadline|teamwork|quality|timeline',
+                    'Write an email to a client apologizing for a delayed delivery and offering a solution.|apology|delay|solution|timeline|appreciation',
+                    'Write an email to your manager requesting feedback on your recent project.|feedback|project|improvement|appreciation'
+                ]
+            };
+
+            let responseType = 'typing';
+            if (prompt.includes('sentence completion')) responseType = 'sc';
+            else if (prompt.includes('listening')) responseType = 'listening';
+            else if (prompt.includes('speaking')) responseType = 'speaking';
+            else if (prompt.includes('dictation')) responseType = 'dictation';
+            else if (prompt.includes('passage')) responseType = 'passage';
+            else if (prompt.includes('email')) responseType = 'email';
+
+            const pool = responses[responseType] || responses.typing;
+            const idx = Math.floor(Math.random() * pool.length);
+            return pool[idx] || pool[0];
+        }
+
+        // ============================================================
+        // AI QUESTION GENERATION
+        // ============================================================
+        async function generateAndStart() {
+            testRunCount++;
+            console.log(`🔄 Test Run #${testRunCount} - Generating fresh questions...`);
+            
+            showLoading();
+            const questions = {};
+
+            try {
+                loadingProvider.textContent = `🧠 Generating fresh content (Run #${testRunCount})`;
+
+                // Step 1: Typing
+                updateLoadingStep(1, 'Generating typing passage...', false);
+                const typingText = await queryAI(
+                    `Generate a UNIQUE 30-40 word passage about business, technology, or workplace communication for typing practice. 
+                    Make it DIFFERENT from any previous passages. Use specific details and professional language. 
+                    Topic variation ${testRunCount}: ${['productivity', 'leadership', 'innovation', 'collaboration', 'customer service'][testRunCount % 5]}. 
+                    Return only the passage.`
+                );
+                questions.typing = [{
+                    id: `typing_${testRunCount}`,
+                    text: typingText || 'The quick brown fox jumps over the lazy dog.',
+                    timeLimit: 30
+                }];
+                updateLoadingStep(1, 'Typing passage generated!', true);
+
+                // Step 2: Sentence Completion
+                updateLoadingStep(2, 'Creating sentence completion...', false);
+                const scResponse = await queryAI(
+                    `Generate a UNIQUE sentence completion question. Use a DIFFERENT context and words each time.
+                    The sentence should have a blank (______) and 4 answer options.
+                    Context variation ${testRunCount}: ${['management', 'marketing', 'finance', 'operations', 'hr'][testRunCount % 5]}.
+                    Return as: "sentence|answer|option1|option2|option3|option4"`
+                );
+                const scParts = scResponse.split('|');
+                if (scParts.length >= 5) {
+                    questions.sentenceCompletion = [{
+                        id: `sc_${testRunCount}`,
+                        sentence: scParts[0],
+                        answer: scParts[1],
+                        options: scParts.slice(2, 6)
+                    }];
+                } else {
+                    questions.sentenceCompletion = [{
+                        id: `sc_${testRunCount}`,
+                        sentence: 'The team will ______ the project by Friday.',
+                        answer: 'complete',
+                        options: ['complete', 'cancel', 'postpone', 'ignore']
+                    }];
+                }
+                updateLoadingStep(2, 'Sentence completion created!', true);
+
+                // Step 3: Listening
+                updateLoadingStep(3, 'Generating listening passage...', false);
+                const listeningText = await queryAI(
+                    `Generate a UNIQUE 3-4 sentence paragraph about a business topic for listening comprehension.
+                    Topic variation ${testRunCount}: ${['meetings', 'presentations', 'negotiations', 'networking', 'strategy'][testRunCount % 5]}.
+                    Make it clear and informative. Include specific details. Return only the paragraph.`
+                );
+                const listeningQuestions = generateListeningQuestions(listeningText || 
+                    'The company announced a new remote work policy starting next month. Employees can choose to work from home or the office. The policy aims to improve work-life balance.');
+                questions.listening = [{
+                    id: `listening_${testRunCount}`,
+                    audioText: listeningText || 'The company announced a new remote work policy starting next month. Employees can choose to work from home or the office. The policy aims to improve work-life balance.',
+                    questions: listeningQuestions
+                }];
+                updateLoadingStep(3, 'Listening passage generated!', true);
+
+                // Step 4: Speaking
+                updateLoadingStep(4, 'Creating speaking topic...', false);
+                const speakingPrompt = await queryAI(
+                    `Generate a UNIQUE speaking prompt for an English proficiency test. 
+                    Topic variation ${testRunCount}: ${['future of work', 'remote collaboration', 'career growth', 'work-life balance', 'digital transformation'][testRunCount % 5]}.
+                    Make it interesting and open-ended. Return only the prompt question.`
+                );
+                questions.speaking = [{
+                    id: `speaking_${testRunCount}`,
+                    prompt: speakingPrompt || 'Describe your ideal workplace environment and explain why it would be productive.',
+                    preparationTime: 15,
+                    speakingTime: 30
+                }];
+                updateLoadingStep(4, 'Speaking topic created!', true);
+
+                // Step 5: Dictation
+                updateLoadingStep(5, 'Generating dictation...', false);
+                const dictText = await queryAI(
+                    `Generate a UNIQUE 15-20 word sentence about workplace productivity, business communication, or professional development for dictation practice.
+                    Topic variation ${testRunCount}: ${['efficiency', 'teamwork', 'leadership', 'innovation', 'quality'][testRunCount % 5]}.
+                    Return only the sentence.`
+                );
+                questions.dictation = [{
+                    id: `dict_${testRunCount}`,
+                    text: dictText || 'The team achieved all their quarterly targets ahead of schedule.'
+                }];
+                updateLoadingStep(5, 'Dictation generated!', true);
+
+                // Step 6: Passage Reconstruction
+                updateLoadingStep(6, 'Creating passage reconstruction...', false);
+                const passageResponse = await queryAI(
+                    `Generate 4 UNIQUE sentences that form a logical paragraph about a business topic.
+                    Topic variation ${testRunCount}: ${['change management', 'decision making', 'team building', 'project management', 'communication'][testRunCount % 5]}.
+                    The sentences should be in a specific logical order. Return as: "sentence1|sentence2|sentence3|sentence4"`
+                );
+                const passageSentences = passageResponse.split('|');
+                if (passageSentences.length >= 4) {
+                    questions.passageReconstruction = [{
+                        id: `pr_${testRunCount}`,
+                        sentences: passageSentences.slice(0, 4),
+                        correctOrder: [0, 1, 2, 3]
+                    }];
+                } else {
+                    questions.passageReconstruction = [{
+                        id: `pr_${testRunCount}`,
+                        sentences: [
+                            'Finally, the project was completed successfully.',
+                            'First, the team defined the project scope.',
+                            'Then, they assigned tasks to each member.',
+                            'After that, they began the implementation phase.'
+                        ],
+                        correctOrder: [1, 2, 3, 0]
+                    }];
+                }
+                updateLoadingStep(6, 'Passage reconstruction created!', true);
+
+                // Step 7: Email Writing
+                updateLoadingStep(7, 'Generating email prompt...', false);
+                const emailResponse = await queryAI(
+                    `Generate a UNIQUE email writing prompt for a professional scenario with 4 key points to include.
+                    Scenario variation ${testRunCount}: ${['client communication', 'team announcement', 'performance review', 'project update', 'policy change'][testRunCount % 5]}.
+                    Return as: "prompt|keyword1|keyword2|keyword3|keyword4"`
+                );
+                const emailParts = emailResponse.split('|');
+                if (emailParts.length >= 4) {
+                    questions.emailWriting = [{
+                        id: `email_${testRunCount}`,
+                        prompt: emailParts[0] || 'Write a professional email about team collaboration.',
+                        keywords: emailParts.slice(1, 5)
+                    }];
+                } else {
+                    questions.emailWriting = [{
+                        id: `email_${testRunCount}`,
+                        prompt: 'Write a professional email to your team about meeting deadlines.',
+                        keywords: ['deadline', 'teamwork', 'quality', 'timeline']
+                    }];
+                }
+                updateLoadingStep(7, 'Email prompt generated!', true);
+
+                state.questions = questions;
+                hideLoading();
+                startTest();
+
+            } catch (error) {
+                hideLoading();
+                console.error('AI Generation Error:', error);
+                
+                const useFallback = confirm(
+                    '❌ AI Generation Error: ' + error.message + 
+                    '\n\nWould you like to use the question bank instead?'
+                );
+
+                if (useFallback) {
+                    state.questions = getRandomFallbackQuestions();
+                    startTest();
+                }
+            }
+        }
+
+        function generateListeningQuestions(text) {
+            return [
+                { id: 'lq_1', question: 'What is the main topic of the passage?', options: ['Option A', 'Option B', 'Option C', 'Option D'], correct: 0 },
+                { id: 'lq_2', question: 'What is the key message?', options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'], correct: 0 },
+                { id: 'lq_3', question: 'What can be inferred from the passage?', options: ['Inference A', 'Inference B', 'Inference C', 'Inference D'], correct: 0 }
+            ];
+        }
+
+        function getRandomFallbackQuestions() {
+            const questions = {
+                typing: [],
+                sentenceCompletion: [],
+                listening: [],
+                speaking: [],
+                dictation: [],
+                passageReconstruction: [],
+                emailWriting: []
+            };
+
+            const typingBank = [
+                'The quick brown fox jumps over the lazy dog. This sentence contains every letter of the English alphabet.',
+                'Customer service excellence requires patience, active listening, and the ability to resolve issues efficiently.',
+                'In todays digital workplace, remote collaboration tools have become essential for team productivity.'
+            ];
+
+            const scBank = [
+                { sentence: 'Effective communication is ______ for team success.', answer: 'essential', options: ['essential', 'optional', 'unnecessary', 'rare'] },
+                { sentence: 'The manager will ______ the meeting at 3 PM.', answer: 'schedule', options: ['schedule', 'cancel', 'postpone', 'ignore'] },
+                { sentence: 'The new software update will ______ significant improvements.', answer: 'bring', options: ['bring', 'remove', 'delay', 'cancel'] }
+            ];
+
+            const listeningBank = [
+                'The company announced a new remote work policy starting next month. Employees can choose to work from home or the office. The policy aims to improve work-life balance.',
+                'The quarterly earnings report shows a 15% increase in revenue compared to last year. The growth is driven by strong sales in the Asia-Pacific region.',
+                'The company is launching a new sustainability initiative to reduce carbon emissions by 30% over the next five years.'
+            ];
+
+            const speakingBank = [
+                'Describe your ideal workplace environment and explain why it would be productive.',
+                'Discuss the importance of teamwork in achieving business goals.',
+                'Explain how technology has changed the way we work in the last 10 years.'
+            ];
+
+            const dictationBank = [
+                'The team achieved all their quarterly targets ahead of schedule.',
+                'Customer feedback is essential for improving product quality and service delivery.',
+                'The new training program will help employees develop their professional skills.'
+            ];
+
+            const passageBank = [
+                { sentences: ['Finally, the project was completed successfully.', 'First, the team defined the project scope.', 'Then, they assigned tasks to each member.', 'After that, they began the implementation phase.'], correctOrder: [1, 2, 3, 0] },
+                { sentences: ['Eventually, the company achieved record profits.', 'Initially, they conducted market research.', 'Next, they developed a new product line.', 'Finally, they launched a marketing campaign.'], correctOrder: [1, 2, 3, 0] }
+            ];
+
+            const emailBank = [
+                { prompt: 'Write a professional email to your team about meeting an important deadline.', keywords: ['deadline', 'teamwork', 'quality', 'timeline'] },
+                { prompt: 'Write an email to a client apologizing for a delayed delivery and offering a solution.', keywords: ['apology', 'delay', 'solution', 'timeline'] }
+            ];
+
+            const randomIndex = Math.floor(Math.random() * typingBank.length);
+            const randomIndex2 = Math.floor(Math.random() * passageBank.length);
+
+            questions.typing = [{ id: `typing_${Date.now()}`, text: typingBank[randomIndex], timeLimit: 30 }];
+            questions.sentenceCompletion = [scBank[randomIndex % scBank.length]];
+            questions.listening = [{
+                id: `listening_${Date.now()}`,
+                audioText: listeningBank[randomIndex % listeningBank.length],
+                questions: [
+                    { id: 'lq_1', question: 'What is the main topic?', options: ['Option A', 'Option B', 'Option C', 'Option D'], correct: 0 },
+                    { id: 'lq_2', question: 'What is the key message?', options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'], correct: 0 },
+                    { id: 'lq_3', question: 'What can be inferred?', options: ['Inference 1', 'Inference 2', 'Inference 3', 'Inference 4'], correct: 0 }
+                ]
+            }];
+            questions.speaking = [{ id: `speaking_${Date.now()}`, prompt: speakingBank[randomIndex % speakingBank.length], preparationTime: 15, speakingTime: 30 }];
+            questions.dictation = [{ id: `dict_${Date.now()}`, text: dictationBank[randomIndex % dictationBank.length] }];
+            questions.passageReconstruction = [passageBank[randomIndex2 % passageBank.length]];
+            questions.emailWriting = [emailBank[randomIndex2 % emailBank.length]];
+
+            return questions;
+        }
+
+        // ============================================================
+        // LOADING FUNCTIONS
+        // ============================================================
+        function updateLoadingStep(stepNum, text, isDone = false) {
+            const step = document.getElementById(`step${stepNum}`);
+            if (step) {
+                if (isDone) {
+                    step.className = 'step done';
+                    step.innerHTML = `✅ ${text}`;
+                } else {
+                    step.className = 'step active';
+                    step.innerHTML = `⏳ ${text}`;
+                }
+            }
+        }
+
+        function showLoading() {
+            for (let i = 1; i <= 7; i++) {
+                const step = document.getElementById(`step${i}`);
+                if (step) {
+                    step.className = 'step';
+                    const texts = {
+                        1: '⏳ Generating typing passage...',
+                        2: '⏳ Creating sentence completion...',
+                        3: '⏳ Generating listening passage...',
+                        4: '⏳ Creating speaking topic...',
+                        5: '⏳ Generating dictation...',
+                        6: '⏳ Creating passage reconstruction...',
+                        7: '⏳ Generating email prompt...'
+                    };
+                    step.innerHTML = texts[i] || '⏳ Generating...';
+                }
+            }
+            loadingOverlay.classList.add('active');
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.remove('active');
+        }
+
+        // ============================================================
+        // TEST FUNCTIONS
+        // ============================================================
+        function startTest() {
+            dashboard.classList.remove('active');
+            testSection.classList.add('active');
+            state.currentSection = 0;
+            state.currentQuestionIndex = 0;
+            state.answers = {};
+            state.isTestComplete = false;
+            
+            loadQuestion();
+            startQuestionTimer();
+        }
+
+        function getTotalQuestions() {
+            if (!state.questions) return 0;
+            let total = 0;
+            for (const s of state.sectionOrder) {
+                total += state.questions[s]?.length || 0;
+            }
+            return total;
+        }
+
+        function getAnsweredCount() {
+            let count = 0;
+            for (const s of state.sectionOrder) {
+                for (let i = 0; i < (state.questions[s]?.length || 0); i++) {
+                    const key = `${s}_${i}`;
+                    if (state.answers[key] !== undefined && state.answers[key] !== '') count++;
+                }
+            }
+            return count;
+        }
+
+        function getSectionLetter(idx) {
+            return String.fromCharCode(65 + idx);
+        }
+
+        function loadQuestion() {
+            // Stop any playing audio when loading new question
+            stopAllAudio();
+            
+            const section = state.sectionOrder[state.currentSection];
+            const questions = state.questions[section];
+            
+            if (!questions || questions.length === 0) {
+                if (state.currentSection < state.sectionOrder.length - 1) {
+                    state.currentSection++;
+                    state.currentQuestionIndex = 0;
+                    loadQuestion();
+                    return;
+                } else {
+                    completeTest();
+                    return;
+                }
+            }
+
+            if (state.currentQuestionIndex >= questions.length) {
+                if (state.currentSection < state.sectionOrder.length - 1) {
+                    state.currentSection++;
+                    state.currentQuestionIndex = 0;
+                    loadQuestion();
+                    return;
+                } else {
+                    completeTest();
+                    return;
+                }
+            }
+
+            const q = questions[state.currentQuestionIndex];
+            const answered = getAnsweredCount();
+            const total = getTotalQuestions();
+            const progress = (answered / total) * 100;
+
+            progressFill.style.width = progress + '%';
+
+            const letter = getSectionLetter(state.currentSection);
+            const icon = state.sectionIcons[section] || '';
+            sectionTitle.innerHTML = `Part ${letter} - ${icon} ${state.sectionNames[section]} <span class="ai-tag">🤖 AI</span>`;
+            questionCounter.textContent = `Question ${state.currentQuestionIndex + 1} of ${questions.length}`;
+
+            renderQuestion(section, q);
+
+            // Start question timer
+            startQuestionTimer();
+        }
+
+        // ============================================================
+        // QUESTION TIMER - 30 SECONDS
+        // ============================================================
+        function startQuestionTimer() {
+            // Stop any existing timer
+            if (state.questionTimerInterval) {
+                clearInterval(state.questionTimerInterval);
+                state.questionTimerInterval = null;
+            }
+
+            // Reset timer to 30 seconds
+            state.questionTimer = 30;
+            updateTimerDisplay();
+
+            // Start the timer
+            state.isQuestionTimerRunning = true;
+            state.questionTimerInterval = setInterval(function() {
+                state.questionTimer--;
+                updateTimerDisplay();
+                
+                // Check if time is up
+                if (state.questionTimer <= 0) {
+                    clearInterval(state.questionTimerInterval);
+                    state.questionTimerInterval = null;
+                    state.isQuestionTimerRunning = false;
+                    
+                    // Stop audio when time runs out
+                    stopAllAudio();
+                    
+                    console.log('⏰ Time up! Auto-advancing...');
+                    autoAdvance();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timeString = `${String(state.questionTimer).padStart(2, '0')}s`;
+            timerDisplay.textContent = `⏱️ ${timeString}`;
+            
+            // Update warning styles
+            if (state.questionTimer <= 5) {
+                timerDisplay.className = 'timer urgent';
+            } else if (state.questionTimer <= 10) {
+                timerDisplay.className = 'timer warning';
+            } else {
+                timerDisplay.className = 'timer';
+            }
+        }
+
+        function stopQuestionTimer() {
+            if (state.questionTimerInterval) {
+                clearInterval(state.questionTimerInterval);
+                state.questionTimerInterval = null;
+                state.isQuestionTimerRunning = false;
+            }
+        }
+
+        function autoAdvance() {
+            // Stop any playing audio
+            stopAllAudio();
+            
+            // Save current answer if any
+            const section = state.sectionOrder[state.currentSection];
+            const key = `${section}_${state.currentQuestionIndex}`;
+            
+            // Check if user typed anything
+            const textarea = document.querySelector('textarea');
+            if (textarea && textarea.value.trim() !== '') {
+                state.answers[key] = textarea.value.trim();
+            }
+            
+            // Move to next question
+            nextQuestion();
+        }
+
+        function forceNext() {
+            // Stop any playing audio when user clicks Skip
+            stopAllAudio();
+            stopQuestionTimer();
+            autoAdvance();
+        }
+
+        function nextQuestion() {
+            const section = state.sectionOrder[state.currentSection];
+            const questions = state.questions[section];
+
+            if (state.currentQuestionIndex < questions.length - 1) {
+                state.currentQuestionIndex++;
+                loadQuestion();
+            } else if (state.currentSection < state.sectionOrder.length - 1) {
+                state.currentSection++;
+                state.currentQuestionIndex = 0;
+                loadQuestion();
+            } else {
+                completeTest();
+            }
+        }
+
+        function completeTest() {
+            stopAllAudio();
+            stopQuestionTimer();
+            state.isTestComplete = true;
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'inline-block';
+            timerDisplay.textContent = '✅ Complete';
+            timerDisplay.className = 'timer';
+            
+            // Auto-submit after 2 seconds
+            setTimeout(function() {
+                submitTest();
+            }, 2000);
+        }
+
+        // ============================================================
+        // RENDER FUNCTIONS
+        // ============================================================
+        function renderQuestion(section, question) {
+            let html = `<div class="ai-gen-label">🤖 AI-Generated Question</div>`;
+
+            switch (section) {
+                case 'typing':
+                    html += `
+                        <div class="question-text">Type the following text exactly as shown:</div>
+                        <div style="background:white;padding:14px;border-radius:8px;margin-bottom:15px;border-left:4px solid #667eea;">
+                            <p style="font-size:1.05rem;">${question.text}</p>
+                        </div>
+                        <textarea id="typingInput" placeholder="Start typing here..." rows="4"></textarea>
+                        <p style="margin-top:8px;color:#666;font-size:0.85rem;">⏱️ Time limit: ${question.timeLimit || 30}s</p>
+                    `;
+                    break;
+
+                case 'sentenceCompletion':
+                    const sentenceHtml = question.sentence.replace('______', '<span style="color:#667eea;font-weight:bold;">______</span>');
+                    html += `
+                        <div class="question-text">Complete the sentence by selecting the correct word:</div>
+                        <p style="font-size:1.1rem;padding:14px;background:white;border-radius:8px;margin-bottom:15px;">${sentenceHtml}</p>
+                        <div class="options-group">
+                            ${question.options.map(opt => `
+                                <label class="option-label">
+                                    <input type="radio" name="sc_option" value="${opt}" />
+                                    ${opt}
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                    break;
+
+                case 'listening':
+                    html += `
+                        <div class="question-text">🎧 Listen to the AI-generated audio and answer the questions:</div>
+                        <div class="audio-controls">
+                            <button onclick="playAudio('${question.audioText.replace(/'/g, "\\'")}')" class="btn-secondary" style="padding:10px 30px;font-size:1rem;">
+                                🔊 Play Audio
+                            </button>
+                            <span class="audio-hint">Audio stops automatically when you skip</span>
+                            ${state.isAudioPlaying ? '<span class="audio-playing-badge">🔴 Playing...</span>' : ''}
+                        </div>
+                        ${question.questions.map((q, idx) => `
+                            <div style="background:white;padding:12px;border-radius:8px;margin-bottom:10px;border:2px solid #f0f0f0;">
+                                <div style="font-weight:600;margin-bottom:6px;">${idx+1}. ${q.question}</div>
+                                <div style="display:flex;flex-direction:column;gap:4px;">
+                                    ${q.options.map((opt, optIdx) => `
+                                        <label style="display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:6px;cursor:pointer;">
+                                            <input type="radio" name="listening_${idx}" value="${optIdx}" 
+                                                   onchange="saveListeningAnswer(${idx}, ${optIdx})" />
+                                            ${opt}
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    `;
+                    break;
+
+                case 'speaking':
+                    html += `
+                        <div style="text-align:center;padding:10px;">
+                            <div class="question-text">🎤 AI-Generated Speaking Assessment</div>
+                            <div style="background:white;padding:15px;border-radius:8px;margin:10px 0;border-left:4px solid #667eea;text-align:left;">
+                                <h4 style="color:#667eea;margin-bottom:5px;">📋 Topic:</h4>
+                                <p style="font-size:1.05rem;">${question.prompt}</p>
+                            </div>
+                            <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin:10px 0;">
+                                <div style="text-align:center;">
+                                    <div style="font-size:0.85rem;color:#666;">⏳ Preparation</div>
+                                    <div id="prepTimer" style="font-size:2rem;font-weight:700;color:#667eea;">${question.preparationTime || 15}s</div>
+                                </div>
+                                <div style="text-align:center;">
+                                    <div style="font-size:0.85rem;color:#666;">🎙️ Speaking</div>
+                                    <div id="speakTimer" style="font-size:2rem;font-weight:700;color:#667eea;">${question.speakingTime || 30}s</div>
+                                </div>
+                            </div>
+                            <button id="speakBtn" class="btn-success" onclick="startSpeaking()">🎙️ Start Speaking</button>
+                            <div id="speechTranscript" style="background:#f8f9fa;padding:12px;border-radius:8px;margin:10px 0;text-align:left;min-height:50px;">
+                                <div style="color:#666;font-size:0.85rem;">📝 Your Speech:</div>
+                                <div id="transcriptText" style="color:#333;margin-top:4px;">Click "Start Speaking" and speak clearly...</div>
+                            </div>
+                            <div id="speechFeedback" style="margin-top:8px;"></div>
+                        </div>
+                    `;
+                    break;
+
+                case 'dictation':
+                    html += `
+                        <div class="question-text">Listen to the AI-generated audio and type what you hear:</div>
+                        <div style="background:white;padding:12px;border-radius:8px;margin:10px 0;border:2px solid #e0e0e0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                            <button onclick="playAudio('${question.text.replace(/'/g, "\\'")}')" class="btn-secondary">🔊 Play AI Audio</button>
+                            <button id="recordBtn" class="btn-secondary" onclick="toggleRecording()">🎤 Start Recording</button>
+                            <span style="color:#666;font-size:0.85rem;">Speak clearly into your microphone</span>
+                        </div>
+                        <textarea id="dictationInput" placeholder="Type what you hear..." rows="4"></textarea>
+                        <div id="dictationStatus" style="margin-top:8px;color:#666;font-size:0.9rem;"></div>
+                    `;
+                    break;
+
+                case 'passageReconstruction':
+                    html += `
+                        <div class="question-text">Drag the AI-generated sentences into the correct order:</div>
+                        <div id="sentenceContainer" style="display:flex;flex-direction:column;gap:6px;margin:10px 0;">
+                            ${question.sentences.map((s, i) => `
+                                <div class="sentence-item" draggable="true" data-index="${i}" style="
+                                    background:white;padding:10px 14px;border-radius:8px;
+                                    border:2px solid #e0e0e0;cursor:grab;transition:all 0.2s;
+                                    display:flex;gap:10px;align-items:center;
+                                ">
+                                    <span style="font-weight:600;color:#667eea;min-width:25px;">${i+1}.</span>
+                                    ${s}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="margin:8px 0;color:#666;font-size:0.9rem;">
+                            Order: <span id="orderDisplay">Drag to reorder</span>
+                        </div>
+                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                            <button onclick="checkPassageOrder()" class="btn-secondary">✅ Check Order</button>
+                            <div id="orderFeedback"></div>
+                        </div>
+                    `;
+                    break;
+
+                case 'emailWriting':
+                    html += `
+                        <div class="question-text">${question.prompt}</div>
+                        <div style="background:#fff3cd;padding:10px 14px;border-radius:8px;margin:10px 0;border-left:4px solid #ffc107;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                            <strong style="color:#856404;">📌 AI-Generated Key points:</strong>
+                            <span style="color:#856404;">${question.keywords.join(', ')}</span>
+                        </div>
+                        <textarea id="emailInput" placeholder="Write your email here..." rows="6"></textarea>
+                        <div style="text-align:right;color:#666;font-size:0.85rem;margin-top:6px;">
+                            Words: <span id="wordCount">0</span>
+                        </div>
+                    `;
+                    break;
+            }
+
+            questionBox.innerHTML = html;
+            attachEvents(section);
+            
+            if (section === 'passageReconstruction') {
+                setTimeout(setupDragDrop, 100);
+            }
+        }
+
+        // ============================================================
+        // EVENT ATTACHMENT
+        // ============================================================
+        function attachEvents(section) {
+            const container = questionBox;
+            const key = `${section}_${state.currentQuestionIndex}`;
+
+            const radios = container.querySelectorAll('input[type="radio"]:not([name*="listening"])');
+            radios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    const checked = container.querySelector('input[name="sc_option"]:checked');
+                    if (checked) {
+                        state.answers[key] = checked.value;
+                    }
+                });
+            });
+
+            const textareas = container.querySelectorAll('textarea');
+            textareas.forEach(textarea => {
+                textarea.addEventListener('input', (e) => {
+                    state.answers[key] = e.target.value;
+                });
+            });
+
+            if (section === 'emailWriting') {
+                const emailInput = document.getElementById('emailInput');
+                if (emailInput) {
+                    emailInput.addEventListener('input', () => {
+                        const words = emailInput.value.split(/\s+/).filter(w => w.length > 0).length;
+                        document.getElementById('wordCount').textContent = words;
+                    });
+                }
+            }
+
+            const saved = state.answers[key];
+            if (saved !== undefined && saved !== '') {
+                if (section === 'sentenceCompletion') {
+                    const radio = container.querySelector(`input[value="${saved}"]`);
+                    if (radio) radio.checked = true;
+                } else {
+                    const textarea = container.querySelector('textarea');
+                    if (textarea) textarea.value = saved;
+                }
+            }
+        }
+
+        // ============================================================
+        // LISTENING
+        // ============================================================
+        function saveListeningAnswer(qIdx, answer) {
+            const key = `listening_${state.currentQuestionIndex}`;
+            if (!state.answers[key]) state.answers[key] = {};
+            state.answers[key][qIdx] = answer;
+        }
+
+        // ============================================================
+        // SPEAKING
+        // ============================================================
+        let speechRecognition = null;
+        let speechTimer = null;
+        let prepTimer = null;
+        let speechText = '';
+
+        function startSpeaking() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert('Speech recognition not supported. Please type your response.');
+                const transcript = document.getElementById('transcriptText');
+                if (transcript) {
+                    transcript.textContent = 'Speech recognition not available. Type your answer manually.';
+                    transcript.contentEditable = true;
+                    transcript.style.border = '2px solid #667eea';
+                    transcript.style.padding = '10px';
+                    transcript.style.borderRadius = '8px';
+                }
+                state.answers[`speaking_${state.currentQuestionIndex}`] = 'Manual input needed';
+                return;
+            }
+
+            const q = state.questions.speaking[state.currentQuestionIndex];
+            let speakTime = q.speakingTime || 30;
+            const speakTimerEl = document.getElementById('speakTimer');
+
+            let prepTime = q.preparationTime || 15;
+            const prepTimerEl = document.getElementById('prepTimer');
+            
+            prepTimer = setInterval(() => {
+                prepTime--;
+                if (prepTimerEl) {
+                    prepTimerEl.textContent = `${prepTime}s`;
+                    if (prepTime <= 5) prepTimerEl.style.color = '#dc3545';
+                }
+                if (prepTime <= 0) {
+                    clearInterval(prepTimer);
+                    if (prepTimerEl) {
+                        prepTimerEl.textContent = '⏰ Ready!';
+                        prepTimerEl.style.color = '#28a745';
+                    }
+                    startRecording();
+                }
+            }, 1000);
+
+            document.getElementById('speakBtn').disabled = true;
+            document.getElementById('speakBtn').textContent = '⏳ Preparing...';
+        }
+
+        function startRecording() {
+            speechRecognition = new webkitSpeechRecognition();
+            speechRecognition.lang = 'en-US';
+            speechRecognition.continuous = true;
+            speechRecognition.interimResults = true;
+
+            let finalTranscript = '';
+
+            speechRecognition.onresult = (event) => {
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                speechText = finalTranscript + interim;
+                document.getElementById('transcriptText').textContent = speechText || 'Speaking...';
+            };
+
+            speechRecognition.onerror = (event) => {
+                console.warn('Speech error:', event.error);
+                if (event.error === 'not-allowed') {
+                    alert('Please allow microphone access.');
+                }
+            };
+
+            speechRecognition.start();
+            document.getElementById('speakBtn').textContent = '🔴 Recording...';
+            document.getElementById('speakBtn').style.background = '#dc3545';
+            document.getElementById('speechFeedback').innerHTML = '🔴 Recording... Speak clearly!';
+
+            const q = state.questions.speaking[state.currentQuestionIndex];
+            let speakTime = q.speakingTime || 30;
+            const speakTimerEl = document.getElementById('speakTimer');
+
+            speechTimer = setInterval(() => {
+                speakTime--;
+                if (speakTimerEl) {
+                    speakTimerEl.textContent = `${speakTime}s`;
+                    if (speakTime <= 5) speakTimerEl.style.color = '#dc3545';
+                }
+                if (speakTime <= 0) {
+                    stopSpeaking();
+                }
+            }, 1000);
+        }
+
+        function stopSpeaking() {
+            if (speechRecognition) {
+                speechRecognition.stop();
+            }
+            if (speechTimer) {
+                clearInterval(speechTimer);
+            }
+            if (prepTimer) {
+                clearInterval(prepTimer);
+            }
+
+            document.getElementById('speakBtn').textContent = '✅ Done';
+            document.getElementById('speakBtn').style.background = '#28a745';
+            document.getElementById('speechFeedback').innerHTML = '✅ Recording complete!';
+
+            state.answers[`speaking_${state.currentQuestionIndex}`] = speechText || 'No speech detected';
+
+            const wordCount = speechText.split(/\s+/).filter(w => w.length > 0).length;
+            const feedback = document.getElementById('speechFeedback');
+            if (wordCount < 5) {
+                feedback.innerHTML = '⚠️ Very short response. Try to speak more next time.';
+                feedback.style.color = '#dc3545';
+            } else if (wordCount < 15) {
+                feedback.innerHTML = '👍 Good start! Try to expand your response.';
+                feedback.style.color = '#ffc107';
+            } else {
+                feedback.innerHTML = '✅ Great! You provided a detailed response.';
+                feedback.style.color = '#28a745';
+            }
+        }
+
+        // ============================================================
+        // DICTATION - SPEECH RECOGNITION
+        // ============================================================
+        let dictationRecognition = null;
+        let isDictationRecording = false;
+
+        function toggleRecording() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert('Speech recognition not supported. Please type your answer.');
+                return;
+            }
+
+            if (isDictationRecording) {
+                stopDictationRecording();
+                return;
+            }
+
+            startDictationRecording();
+        }
+
+        function startDictationRecording() {
+            dictationRecognition = new webkitSpeechRecognition();
+            dictationRecognition.lang = 'en-US';
+            dictationRecognition.continuous = false;
+            dictationRecognition.interimResults = false;
+
+            dictationRecognition.onstart = () => {
+                isDictationRecording = true;
+                const btn = document.getElementById('recordBtn');
+                if (btn) {
+                    btn.textContent = '🔴 Recording...';
+                    btn.style.background = '#dc3545';
+                }
+                document.getElementById('dictationStatus').textContent = '🎤 Recording... Speak now!';
+            };
+
+            dictationRecognition.onend = () => {
+                isDictationRecording = false;
+                const btn = document.getElementById('recordBtn');
+                if (btn) {
+                    btn.textContent = '🎤 Start Recording';
+                    btn.style.background = '';
+                }
+            };
+
+            dictationRecognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                const textarea = document.getElementById('dictationInput');
+                if (textarea) {
+                    textarea.value = transcript;
+                    textarea.dispatchEvent(new Event('input'));
+                }
+                document.getElementById('dictationStatus').textContent = '✅ Transcribed successfully!';
+                const key = `dictation_${state.currentQuestionIndex}`;
+                state.answers[key] = transcript;
+            };
+
+            dictationRecognition.onerror = () => {
+                document.getElementById('dictationStatus').textContent = '⚠️ Could not transcribe. Please type your answer.';
+                isDictationRecording = false;
+                const btn = document.getElementById('recordBtn');
+                if (btn) {
+                    btn.textContent = '🎤 Try Again';
+                    btn.style.background = '';
+                }
+            };
+
+            dictationRecognition.start();
+        }
+
+        function stopDictationRecording() {
+            if (dictationRecognition) {
+                dictationRecognition.stop();
+                isDictationRecording = false;
+            }
+        }
+
+        // ============================================================
+        // DRAG AND DROP
+        // ============================================================
+        let draggedItem = null;
+
+        function setupDragDrop() {
+            const container = document.getElementById('sentenceContainer');
+            if (!container) return;
+
+            const newContainer = container.cloneNode(true);
+            container.parentNode.replaceChild(newContainer, container);
+
+            newContainer.addEventListener('dragstart', (e) => {
+                draggedItem = e.target.closest('.sentence-item');
+                if (draggedItem) draggedItem.style.opacity = '0.5';
+            });
+
+            newContainer.addEventListener('dragend', (e) => {
+                if (draggedItem) {
+                    draggedItem.style.opacity = '1';
+                    draggedItem = null;
+                }
+            });
+
+            newContainer.addEventListener('dragover', (e) => e.preventDefault());
+
+            newContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const target = e.target.closest('.sentence-item');
+                if (!target || !draggedItem || draggedItem === target) return;
+
+                const children = Array.from(newContainer.children);
+                const di = children.indexOf(draggedItem);
+                const ti = children.indexOf(target);
+                if (di < ti) newContainer.insertBefore(draggedItem, target.nextSibling);
+                else newContainer.insertBefore(draggedItem, target);
+                updatePassageOrder();
+            });
+        }
+
+        function updatePassageOrder() {
+            const items = document.querySelectorAll('.sentence-item');
+            const order = Array.from(items).map(el => parseInt(el.dataset.index));
+            document.getElementById('orderDisplay').textContent = order.join(' → ');
+            state.answers[`passageReconstruction_${state.currentQuestionIndex}`] = order;
+        }
+
+        function checkPassageOrder() {
+            const q = state.questions.passageReconstruction[state.currentQuestionIndex];
+            const items = document.querySelectorAll('.sentence-item');
+            const userOrder = Array.from(items).map(el => parseInt(el.dataset.index));
+            const isCorrect = JSON.stringify(userOrder) === JSON.stringify(q.correctOrder);
+            const fb = document.getElementById('orderFeedback');
+            fb.style.cssText = `padding:8px 16px;border-radius:6px;font-weight:600;${isCorrect ? 'color:#155724;background:#d4edda;' : 'color:#721c24;background:#f8d7da;'}`;
+            fb.textContent = isCorrect ? '✅ Perfect! Correct order!' : '❌ Not quite right. Try again.';
+        }
+
+        // ============================================================
+        // SUBMIT & EVALUATE
+        // ============================================================
+        function submitTest() {
+            stopAllAudio();
+            stopQuestionTimer();
+            
+            testSection.classList.remove('active');
+            resultsSection.classList.add('active');
+
+            const results = evaluateTest();
+            displayResults(results);
+        }
+
+        function evaluateTest() {
+            let totalScore = 0;
+            let maxScore = 0;
+            const sectionResults = {};
+
+            for (const section of state.sectionOrder) {
+                const questions = state.questions[section];
+                if (!questions) continue;
+
+                let correct = 0;
+                const details = [];
+
+                for (let i = 0; i < questions.length; i++) {
+                    const key = `${section}_${i}`;
+                    let userAnswer = state.answers[key] || '';
+                    const q = questions[i];
+                    maxScore++;
+
+                    let isCorrect = false;
+                    let score = 0;
+                    let feedback = '';
+
+                    switch (section) {
+                        case 'typing':
+                            const sim = calculateSimilarity(userAnswer, q.text);
+                            score = sim;
+                            if (sim >= 70) { isCorrect = true;
+                                correct++;
+                                totalScore++; }
+                            feedback = sim >= 70 ? '✅ Good typing!' : `📝 ${sim}% match. Review the original text.`;
+                            break;
+
+                        case 'sentenceCompletion':
+                            if (userAnswer === q.answer) {
+                                isCorrect = true;
+                                correct++;
+                                totalScore++;
+                                score = 100;
+                                feedback = '✅ Correct!';
+                            } else {
+                                score = 0;
+                                feedback = `💡 Expected: "${q.answer}"`;
+                            }
+                            break;
+
+                        case 'listening':
+                            if (typeof userAnswer === 'object') {
+                                let correctCount = 0;
+                                q.questions.forEach((subQ, idx) => {
+                                    if (userAnswer[idx] === subQ.correct) correctCount++;
+                                });
+                                const pct = Math.round((correctCount / q.questions.length) * 100);
+                                if (pct >= 60) { isCorrect = true;
+                                    correct++;
+                                    totalScore++; }
+                                score = pct;
+                                feedback = pct >= 80 ? '✅ Excellent listening!' :
+                                    pct >= 60 ? `👍 ${pct}% correct.` :
+                                    `📝 ${pct}% correct. Listen again.`;
+                            }
+                            break;
+
+                        case 'speaking':
+                            const words = (userAnswer || '').split(/\s+/).filter(w => w.length > 0).length;
+                            if (words >= 10) { isCorrect = true;
+                                correct++;
+                                totalScore++; }
+                            score = Math.min(words * 5, 100);
+                            feedback = words >= 20 ? '✅ Excellent speaking!' :
+                                words >= 10 ? '👍 Good response.' :
+                                '💡 Practice speaking more.';
+                            break;
+
+                        case 'dictation':
+                            const sim2 = calculateSimilarity(userAnswer, q.text);
+                            score = sim2;
+                            if (sim2 >= 65) { isCorrect = true;
+                                correct++;
+                                totalScore++; }
+                            feedback = sim2 >= 65 ? '✅ Good transcription!' : `📝 ${sim2}% match.`;
+                            break;
+
+                        case 'passageReconstruction':
+                            if (Array.isArray(userAnswer) && JSON.stringify(userAnswer) === JSON.stringify(q
+                                    .correctOrder)) {
+                                isCorrect = true;
+                                correct++;
+                                totalScore++;
+                                score = 100;
+                                feedback = '✅ Correct order!';
+                            } else {
+                                score = 0;
+                                feedback = '❌ Order is incorrect.';
+                            }
+                            break;
+
+                        case 'emailWriting':
+                            if (userAnswer) {
+                                const matched = q.keywords.filter(k =>
+                                    userAnswer.toLowerCase().includes(k.toLowerCase())
+                                );
+                                score = Math.round((matched.length / q.keywords.length) * 100);
+                                if (score >= 60) { isCorrect = true;
+                                    correct++;
+                                    totalScore++; }
+                                feedback = score >= 80 ? '✅ Excellent email!' :
+                                    score >= 60 ? '👍 Good email.' :
+                                    '📝 Include key points.';
+                            } else {
+                                score = 0;
+                                feedback = '⚠️ No email written.';
+                            }
+                            break;
+                    }
+
+                    details.push({ score, feedback, isCorrect });
+                }
+
+                sectionResults[section] = {
+                    score: correct,
+                    max: questions.length,
+                    percentage: Math.round((correct / questions.length) * 100),
+                    details
+                };
+            }
+
+            return {
+                totalScore,
+                maxScore,
+                percentage: Math.round((totalScore / maxScore) * 100),
+                sections: sectionResults
+            };
+        }
+
+        function calculateSimilarity(str1, str2) {
+            const s1 = str1.toLowerCase().trim();
+            const s2 = str2.toLowerCase().trim();
+            if (s1 === s2) return 100;
+            if (!s1 || !s2) return 0;
+
+            const matrix = [];
+            for (let i = 0; i <= s2.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= s1.length; j++) matrix[0][j] = j;
+            for (let i = 1; i <= s2.length; i++) {
+                for (let j = 1; j <= s1.length; j++) {
+                    if (s2[i - 1] === s1[j - 1]) matrix[i][j] = matrix[i - 1][j - 1];
+                    else matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+                }
+            }
+            return Math.round((1 - matrix[s2.length][s1.length] / Math.max(s1.length, s2.length)) * 100);
+        }
+
+        // ============================================================
+        // DISPLAY RESULTS
+        // ============================================================
+        function displayResults(results) {
+            const { totalScore, maxScore, percentage, sections } = results;
+
+            let icon, feedbackText, color;
+            if (percentage >= 80) {
+                icon = '🏆';
+                feedbackText = '🎉 Excellent! You\'re well-prepared!';
+                color = '#28a745';
+            } else if (percentage >= 60) {
+                icon = '🥈';
+                feedbackText = '👍 Good work! Focus on areas with lower scores.';
+                color = '#ffc107';
+            } else {
+                icon = '💪';
+                feedbackText = 'Keep practicing! Review the sections you found challenging.';
+                color = '#dc3545';
+            }
+
+            const insights = generateInsights(sections);
+
+            let html = `
+                <div class="results-container">
+                    <div class="results-header">
+                        <div class="result-icon">${icon}</div>
+                        <div class="total-score">
+                            <span class="score-number">${totalScore}</span>
+                            <span class="score-max">/${maxScore}</span>
+                            <span class="score-percentage">(${percentage}%)</span>
+                        </div>
+                        <p class="feedback-text" style="color:${color}">${feedbackText}</p>
+                        <div style="margin-top:10px;">
+                            <span class="ai-status-badge">🤖 AI-Generated Questions</span>
+                            <span class="auto-advance-badge">⏱️ Auto-Advance</span>
+                            <span class="auto-advance-badge" style="background: #dc3545; color: white;">🎧 Audio Auto-Stop</span>
+                        </div>
+                    </div>
+
+                    <div class="insights-section">
+                        <h3>🧠 AI-Generated Insights</h3>
+                        ${insights}
+                    </div>
+
+                    <div class="section-results">
+                        <h3>📊 Section Breakdown</h3>
+            `;
+
+            state.sectionOrder.forEach((section, index) => {
+                const data = sections[section];
+                if (!data) return;
+                const letter = getSectionLetter(index);
+                const icon = state.sectionIcons[section] || '';
+                const barColor = data.percentage >= 70 ? '#28a745' :
+                    data.percentage >= 50 ? '#ffc107' : '#dc3545';
+
+                html += `
+                    <div class="section-result-item">
+                        <div class="section-header">
+                            <span class="section-letter">Part ${letter} ${icon}</span>
+                            <span class="section-name">${state.sectionNames[section]} <span style="font-size:0.6rem;color:#667eea;">🤖 AI</span></span>
+                        </div>
+                        <div class="section-score">
+                            <span class="score-text">${data.score}/${data.max}</span>
+                            <div class="score-bar-container">
+                                <div class="score-bar" style="width:${data.percentage}%;background:${barColor};"></div>
+                            </div>
+                            <span class="score-percentage-text">${data.percentage}%</span>
+                        </div>
+                        ${data.details.map((d, i) => `
+                            <div style="font-size:0.85rem;color:${d.isCorrect ? '#28a745' : '#dc3545'};margin-top:4px;">
+                                Q${i+1}: ${d.feedback}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('resultsContainer').innerHTML = html;
+        }
+
+        function generateInsights(sections) {
+            const strengths = [];
+            const weaknesses = [];
+            const recommendations = [];
+
+            state.sectionOrder.forEach((section) => {
+                const data = sections[section];
+                if (!data) return;
+                if (data.percentage >= 80) strengths.push(state.sectionNames[section]);
+                else if (data.percentage < 50) weaknesses.push(state.sectionNames[section]);
+            });
+
+            if (weaknesses.includes('Typing')) recommendations.push('Practice typing on KeyBr or TypingClub.');
+            if (weaknesses.includes('Dictation')) recommendations.push('Use YouTube dictation exercises.');
+            if (weaknesses.includes('Email Writing')) recommendations.push('Study professional email templates.');
+            if (weaknesses.includes('Sentence Completion')) recommendations.push('Review English grammar.');
+            if (weaknesses.includes('Listening Comprehension')) recommendations.push('Listen to English podcasts daily.');
+            if (weaknesses.includes('Speaking Assessment')) recommendations.push('Practice speaking by recording yourself.');
+
+            let html = '';
+            if (strengths.length) {
+                html += `<div class="insight-item strength">
+                    <span class="insight-icon">✅</span>
+                    <span><strong>Strengths:</strong> ${strengths.join(', ')}</span>
+                </div>`;
+            }
+            if (weaknesses.length) {
+                html += `<div class="insight-item weakness">
+                    <span class="insight-icon">🔄</span>
+                    <span><strong>Areas to improve:</strong> ${weaknesses.join(', ')}</span>
+                </div>`;
+            }
+            if (recommendations.length) {
+                html += `<div class="insight-item recommendation">
+                    <span class="insight-icon">💡</span>
+                    <div>
+                        <strong>Recommendations:</strong>
+                        <ul>${recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
+                    </div>
+                </div>`;
+            }
+            if (!strengths.length && !weaknesses.length) {
+                html += '<p style="color:#666;">Complete the test to get personalized insights!</p>';
+            }
+
+            return html;
+        }
+
+        // ============================================================
+        // RESET
+        // ============================================================
+        function resetTest() {
+            stopAllAudio();
+            stopQuestionTimer();
+            
+            state.questions = null;
+            state.answers = {};
+            state.currentSection = 0;
+            state.currentQuestionIndex = 0;
+
+            resultsSection.classList.remove('active');
+            dashboard.classList.add('active');
+            progressFill.style.width = '0%';
+            timerDisplay.textContent = '⏱️ 00:30';
+            timerDisplay.className = 'timer';
+            nextBtn.disabled = true;
+            submitBtn.style.display = 'none';
+            nextBtn.style.display = 'inline-block';
+
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        // Make functions global
+        window.playAudio = playAudio;
+        window.stopAllAudio = stopAllAudio;
+        window.startSpeaking = startSpeaking;
+        window.toggleRecording = toggleRecording;
+        window.checkPassageOrder = checkPassageOrder;
+        window.saveListeningAnswer = saveListeningAnswer;
+        window.nextQuestion = nextQuestion;
+        window.forceNext = forceNext;
+        window.submitTest = submitTest;
+        window.resetTest = resetTest;
+        window.generateAndStart = generateAndStart;
+        window.checkSupabaseConnection = checkSupabaseConnection;
+
+        console.log('🤖 AI-Powered Versant Practice loaded!');
+        console.log('🎧 Audio auto-stops on skip and timer end!');
+        console.log('⏱️ 30-second timer per question - auto-advances!');
+        console.log('🚀 Click "Generate NEW AI Questions" to start!');
+
+        checkSupabaseConnection();
+    </script>
+</body>
+</html>
