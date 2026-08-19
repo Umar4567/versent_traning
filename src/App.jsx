@@ -25,6 +25,7 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 const getApiUrl = (path) => (API_BASE_URL ? `${API_BASE_URL}${path}` : `/api${path}`);
+const hasAiBackend = Boolean(import.meta.env.VITE_API_BASE_URL);
 
 const sectionOrder = [
   'typing',
@@ -515,17 +516,18 @@ function App() {
     const timestamp = Date.now();
     const enhancedPrompt = `${prompt}\n\nIMPORTANT: Generate DIFFERENT content each time. Use this unique seed: ${randomSeed}. Timestamp: ${timestamp}. Do NOT repeat previous content.`;
 
-    const pollinationsApiKey = import.meta.env.VITE_POLLINATIONS_API_KEY || '';
-    const pollinationsTextProxyBase = import.meta.env.VITE_POLLINATIONS_TEXT_PROXY_URL || getApiUrl('/pollinations');
-    const proxyUrl = `${pollinationsTextProxyBase}/${encodeURIComponent(enhancedPrompt)}?seed=${randomSeed}&t=${timestamp}`;
+    const pollinationsTextProxyBase = import.meta.env.VITE_POLLINATIONS_TEXT_PROXY_URL || '';
+    const proxyUrl = pollinationsTextProxyBase
+      ? `${pollinationsTextProxyBase}/${encodeURIComponent(enhancedPrompt)}?seed=${randomSeed}&t=${timestamp}`
+      : null;
     
     const defaultHeaders = {
       'Accept': 'text/plain',
       'User-Agent': 'Learning-App/1.0'
     };
 
-    // Try local API server FIRST (most reliable)
-    try {
+    // Static hosting has no local /api server. Use one only when explicitly configured.
+    if (hasAiBackend) try {
       const localResponse = await fetch(getApiUrl(`/generate?seed=${randomSeed}`), {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
@@ -546,12 +548,9 @@ function App() {
       console.warn('⚠️ Local API error:', localError.message);
     }
 
-    // Try Pollinations via proxy with headers
-    try {
+    // Call a text proxy only when one is configured.
+    if (proxyUrl) try {
       const headers = { ...defaultHeaders };
-      if (pollinationsApiKey) {
-        headers['Authorization'] = `Bearer ${pollinationsApiKey}`;
-      }
       
       const proxyResponse = await fetch(proxyUrl, { 
         signal: AbortSignal.timeout(5000),
